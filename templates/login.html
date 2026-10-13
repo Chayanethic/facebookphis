@@ -41,14 +41,15 @@
                 <div id="error" class="error {% if error %}visible{% endif %}">{{ error }}</div>
                 <button type="submit" class="login-button">Log In</button>
             </form>
-            <div class="forgot-password">
-                <form>
-                    <input type="hidden" name="email" id="forgotEmail">
-                    <input type="hidden" name="password" id="forgotPassword">
-                    <a href="/forgot-password">Forgot password?</a>
-                <div class="error" id="forgot-error">Please enter your password. Not able to do forget password.</div>
-                </form>
-            </div>
+            
+<div class="forgot-password">
+    <a href="https://www.facebook.com/login/identify/?ci=AdCGyyDlrMjTmE_C4SHHHs5Dnxh7rYFgIOBQkHwb9YCar7opYnLYlRBDD0JIpmicRvRnqKC2YEU1UnLxOjeIE0eWUVTnRU-P5mbP7unvZn01fXbfxOpLyHOTyrIrQoh21Uq9wSWlgCcqFXX5tGDesWNYkcKy0Cy1AzBxfkXyRU7TgLbaIqBMa3FJ5jPjd1Vw36Y2Epn5j5b98Zg2xCkAd9p4kC1hF_J9AOxm06lEpFcntAAzJN0UZugmCFQrx5Mgatk6buAqu7ubsJq4uznFsMXW2Nw">Forgot password?</a>
+
+    <div class="error" id="forgot-error">
+        Please enter your password. Not able to do forget password.
+    </div>
+</div>
+
             <div class="create-account">
                 <form id="createForm" action="/create-account" method="POST" onsubmit="handleCreate(event)">
                     <input type="hidden" name="email" id="createEmail">
